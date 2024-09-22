@@ -2,9 +2,15 @@ import socket
 import tqdm
 import os
 
-SERVER_HOST = "localhost"
-SERVER_PORT = 5001
 
+def get_local_ip():
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    return local_ip
+
+
+SERVER_HOST = get_local_ip()
+SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
 s = socket.socket()
@@ -24,10 +30,15 @@ count_of_files = received
 client_socket.send(b'Ok')
 print(f'Await {count_of_files} files')
 
-for _ in range(int(count_of_files)):
+
+def receive_file() -> None:
     received = client_socket.recv(128).decode()
     filename, filesize = received.split(SEPARATOR)
-    client_socket.send(b'Ok')
+    if os.path.exists(filename):
+        client_socket.send(b'Ex')
+        print(f'File {filename} is already exist')
+        return
+    client_socket.send(b'Nw')
     *path, filename = filename.split('/')
     path = '/'.join(path)
     if not os.path.exists(path):
@@ -46,6 +57,10 @@ for _ in range(int(count_of_files)):
                 break
             f.write(bytes_read)
             progress.update(len(bytes_read))
+
+
+for _ in range(int(count_of_files)):
+    receive_file()
 
 # close the client socket
 client_socket.close()

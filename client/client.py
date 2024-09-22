@@ -4,7 +4,15 @@ import os
 
 SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
-host = "localhost"
+
+
+def get_local_ip():
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    return local_ip
+
+
+host = get_local_ip()
 port = 5001
 
 
@@ -27,10 +35,12 @@ count = str(len(filenames))
 s.send(count.encode())
 s.recv(2).decode()
 
-for filename in filenames:
+
+def send_file(filename: str) -> None:
     filesize = os.path.getsize(filename)
     s.send(f"{filename}{SEPARATOR}{filesize}".encode())
-    s.recv(2).decode()
+    if s.recv(2).decode() == 'Ex':
+        return
 
     progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
 
@@ -42,5 +52,8 @@ for filename in filenames:
             s.sendall(bytes_read)
             progress.update(len(bytes_read))
 
+
+for filename in filenames:
+    send_file(filename)
 
 s.close()
