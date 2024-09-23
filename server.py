@@ -15,27 +15,21 @@ BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
 
 
-def format_path(path: str) -> str:
-    return '/'.join(path.split('\\'))
-
-
-def get_files_for_sending():
+def get_files_for_sending(path_from):
     filenames = []
-    for dir_info in os.walk('test_dir'):
+    for dir_info in os.walk(path_from):
         for file in dir_info[2]:
-            dr = format_path(dir_info[0])
+            dr = '/'.join(dir_info[0].split('\\'))
             filenames.append(f'{dr}/{file}')
     return filenames
 
 
-filenames = get_files_for_sending()
-
-
 class Server:
-    def __init__(self):
+    def __init__(self, data_dir='data_dir'):
         self.s = socket.socket()
         self.s.bind((SERVER_HOST, SERVER_PORT))
         self.s.listen(1)
+        self.data_dir = data_dir
 
         print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
         self.client_socket, address = self.s.accept()
@@ -44,6 +38,10 @@ class Server:
     def receive_file(self) -> None:
         received = self.client_socket.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
+        filename = filename[filename.index("/") + 1:]
+        if self.data_dir:
+            filename = f'{self.data_dir}/{filename}'
+
         if os.path.exists(filename):
             self.client_socket.send(b'Ex')
             print(f'File {filename} is already exist')
@@ -52,6 +50,7 @@ class Server:
         *path, filename = filename.split('/')
         path = '/'.join(path)
         if not os.path.exists(path):
+            print(path)
             os.mkdir(path)
         filename = f'{path}/{filename}'
         filesize = int(filesize)
@@ -91,9 +90,8 @@ class Server:
         print(f'Await {count} files')
         return int(count)
 
-    def send_file_count(self) -> None:
-        count = str(len(filenames))
-        self.client_socket.send(count.encode())
+    def send_file_count(self, count: int) -> None:
+        self.client_socket.send(str(count).encode())
         self.client_socket.recv(2).decode()
 
     def receive_all(self) -> None:
@@ -102,7 +100,8 @@ class Server:
             self.receive_file()
 
     def send_all(self) -> None:
-        self.send_file_count()
+        filenames = get_files_for_sending(self.data_dir)
+        self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
 
@@ -111,6 +110,8 @@ class Server:
         self.s.close()
 
 
-
-# close the client socket
-# close the server socket
+if __name__ == '__main__':
+    server = Server()
+    server.receive_all()
+    server.send_all()
+    server.close()

@@ -16,36 +16,27 @@ host = get_local_ip()  # input('Введите хост подключения')
 SERVER_PORT = 5001
 
 
-def format_path(path: str) -> str:
-    return '/'.join(path.split('\\'))
-
-
-def get_files_for_sending():
+def get_files_for_sending(path_from):
     filenames = []
-    for dir_info in os.walk('test_dir'):
+    for dir_info in os.walk(path_from):
         for file in dir_info[2]:
-            dr = format_path(dir_info[0])
+            dr = '/'.join(dir_info[0].split('\\'))
             filenames.append(f'{dr}/{file}')
     return filenames
 
 
-filenames = get_files_for_sending()
-
-print(filenames)
-
-
 class Client:
-    def __init__(self):
+    def __init__(self, data_dir='save_dir'):
         self.s = socket.socket()
+        self.data_dir = data_dir
 
     def connect(self, host: str) -> None:
         print(f"[+] Connecting to {host}:{SERVER_PORT}")
         self.s.connect((host, SERVER_PORT))
         print("[+] Connected.")
 
-    def send_file_count(self) -> None:
-        count = str(len(filenames))
-        self.s.send(count.encode())
+    def send_file_count(self, count: int) -> None:
+        self.s.send(str(count).encode())
         self.s.recv(2).decode()
 
     def receive_file_count(self) -> int:
@@ -74,6 +65,9 @@ class Client:
     def receive_file(self) -> None:
         received = self.s.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
+        filename = filename[filename.index("/") + 1:]
+        if self.data_dir:
+            filename = f'{self.data_dir}/' + filename
         if os.path.exists(filename):
             self.s.send(b'Ex')
             print(f'File {filename} is already exist')
@@ -98,8 +92,9 @@ class Client:
                 f.write(bytes_read)
                 progress.update(len(bytes_read))
 
-    def send_all(self):
-        self.send_file_count()
+    def send_all(self) -> None:
+        filenames = get_files_for_sending(self.data_dir)
+        self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
 
@@ -112,9 +107,10 @@ class Client:
         self.s.close()
 
 
-client = Client()
-client.connect(host)
-client.send_all()
-client.receive_all()
-client.close()
+if __name__ == '__main__':
+    client = Client()
+    client.connect(host)
+    client.send_all()
+    client.receive_all()
+    client.close()
 

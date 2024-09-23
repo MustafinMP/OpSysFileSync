@@ -28,10 +28,18 @@ def main() -> None:
     mode = choice_mode()
     if mode == 'p':
         from server import Server
-        server = Server()
+        server = Server('data_dir')
         server.receive_all()
         server.send_all()
         server.close()
+    elif mode == 's':
+        from client import Client
+        client = Client('save_dir')
+        host = input('Укажите хост подключения: ')
+        client.connect(host)
+        client.send_all()
+        client.receive_all()
+        client.close()
 
 
 if __name__ == '__main__':
