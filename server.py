@@ -25,10 +25,21 @@ print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
 client_socket, address = s.accept()
 print(f"[+] {address} is connected.")
 
-received = client_socket.recv(128).decode()
-count_of_files = received
-client_socket.send(b'Ok')
-print(f'Await {count_of_files} files')
+
+def format_path(path: str) -> str:
+    return '/'.join(path.split('\\'))
+
+
+def get_files_for_sending():
+    filenames = []
+    for dir_info in os.walk('test_dir'):
+        for file in dir_info[2]:
+            dr = format_path(dir_info[0])
+            filenames.append(f'{dr}/{file}')
+    return filenames
+
+
+filenames = get_files_for_sending()
 
 
 def receive_file() -> None:
@@ -59,8 +70,47 @@ def receive_file() -> None:
             progress.update(len(bytes_read))
 
 
+def send_file(filename: str) -> None:
+    filesize = os.path.getsize(filename)
+    client_socket.send(f"{filename}{SEPARATOR}{filesize}".encode())
+    if client_socket.recv(2).decode() == 'Ex':
+        return
+
+    progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+
+    with open(filename, "rb") as f:
+        while True:
+            bytes_read = f.read(BUFFER_SIZE)
+            if not bytes_read:
+                break
+            client_socket.sendall(bytes_read)
+            progress.update(len(bytes_read))
+
+
+def receive_file_count() -> int:
+    received = client_socket.recv(128).decode()
+    count = received
+    client_socket.send(b'Ok')
+    print(f'Await {count} files')
+    return int(count)
+
+
+def send_file_count() -> None:
+    global client_socket
+    count = str(len(filenames))
+    client_socket.send(count.encode())
+    client_socket.recv(2).decode()
+
+
+count_of_files = receive_file_count()
+
 for _ in range(int(count_of_files)):
     receive_file()
+
+
+send_file_count()
+for filename in filenames:
+    send_file(filename)
 
 # close the client socket
 client_socket.close()
