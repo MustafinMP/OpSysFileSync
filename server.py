@@ -13,17 +13,6 @@ SERVER_HOST = get_local_ip()
 SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
-s = socket.socket()
-s.bind((SERVER_HOST, SERVER_PORT))
-
-# enabling our server to accept connections
-# 5 here is the number of unaccepted connections that
-# the system will allow before refusing new connections
-s.listen(5)
-
-print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
-client_socket, address = s.accept()
-print(f"[+] {address} is connected.")
 
 
 def format_path(path: str) -> str:
@@ -42,77 +31,86 @@ def get_files_for_sending():
 filenames = get_files_for_sending()
 
 
-def receive_file() -> None:
-    received = client_socket.recv(128).decode()
-    filename, filesize = received.split(SEPARATOR)
-    if os.path.exists(filename):
-        client_socket.send(b'Ex')
-        print(f'File {filename} is already exist')
-        return
-    client_socket.send(b'Nw')
-    *path, filename = filename.split('/')
-    path = '/'.join(path)
-    if not os.path.exists(path):
-        os.mkdir(path)
-    filename = f'{path}/{filename}'
-    filesize = int(filesize)
+class Server:
+    def __init__(self):
+        self.s = socket.socket()
+        self.s.bind((SERVER_HOST, SERVER_PORT))
+        self.s.listen(1)
 
-    progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-    downloaded_bytes_count = 0
-    with open(filename, "wb") as f:
-        while downloaded_bytes_count < filesize:
-            p = BUFFER_SIZE if filesize - downloaded_bytes_count >= BUFFER_SIZE else filesize - downloaded_bytes_count
-            downloaded_bytes_count += p
-            bytes_read = client_socket.recv(p)
-            if not bytes_read:
-                break
-            f.write(bytes_read)
-            progress.update(len(bytes_read))
+        print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
+        self.client_socket, address = self.s.accept()
+        print(f"[+] {address} is connected.")
+
+    def receive_file(self) -> None:
+        received = self.client_socket.recv(128).decode()
+        filename, filesize = received.split(SEPARATOR)
+        if os.path.exists(filename):
+            self.client_socket.send(b'Ex')
+            print(f'File {filename} is already exist')
+            return
+        self.client_socket.send(b'Nw')
+        *path, filename = filename.split('/')
+        path = '/'.join(path)
+        if not os.path.exists(path):
+            os.mkdir(path)
+        filename = f'{path}/{filename}'
+        filesize = int(filesize)
+
+        progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+        downloaded_bytes_count = 0
+        with open(filename, "wb") as f:
+            while downloaded_bytes_count < filesize:
+                p = BUFFER_SIZE if filesize - downloaded_bytes_count >= BUFFER_SIZE else filesize - downloaded_bytes_count
+                downloaded_bytes_count += p
+                bytes_read = self.client_socket.recv(p)
+                if not bytes_read:
+                    break
+                f.write(bytes_read)
+                progress.update(len(bytes_read))
+
+    def send_file(self, filename: str) -> None:
+        filesize = os.path.getsize(filename)
+        self.client_socket.send(f"{filename}{SEPARATOR}{filesize}".encode())
+        if self.client_socket.recv(2).decode() == 'Ex':
+            return
+
+        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+
+        with open(filename, "rb") as f:
+            while True:
+                bytes_read = f.read(BUFFER_SIZE)
+                if not bytes_read:
+                    break
+                self.client_socket.sendall(bytes_read)
+                progress.update(len(bytes_read))
+
+    def receive_file_count(self) -> int:
+        received = self.client_socket.recv(128).decode()
+        count = received
+        self.client_socket.send(b'Ok')
+        print(f'Await {count} files')
+        return int(count)
+
+    def send_file_count(self) -> None:
+        count = str(len(filenames))
+        self.client_socket.send(count.encode())
+        self.client_socket.recv(2).decode()
+
+    def receive_all(self) -> None:
+        count_of_files = self.receive_file_count()
+        for _ in range(int(count_of_files)):
+            self.receive_file()
+
+    def send_all(self) -> None:
+        self.send_file_count()
+        for filename in filenames:
+            self.send_file(filename)
+
+    def close(self):
+        self.client_socket.close()
+        self.s.close()
 
 
-def send_file(filename: str) -> None:
-    filesize = os.path.getsize(filename)
-    client_socket.send(f"{filename}{SEPARATOR}{filesize}".encode())
-    if client_socket.recv(2).decode() == 'Ex':
-        return
-
-    progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-
-    with open(filename, "rb") as f:
-        while True:
-            bytes_read = f.read(BUFFER_SIZE)
-            if not bytes_read:
-                break
-            client_socket.sendall(bytes_read)
-            progress.update(len(bytes_read))
-
-
-def receive_file_count() -> int:
-    received = client_socket.recv(128).decode()
-    count = received
-    client_socket.send(b'Ok')
-    print(f'Await {count} files')
-    return int(count)
-
-
-def send_file_count() -> None:
-    global client_socket
-    count = str(len(filenames))
-    client_socket.send(count.encode())
-    client_socket.recv(2).decode()
-
-
-count_of_files = receive_file_count()
-
-for _ in range(int(count_of_files)):
-    receive_file()
-
-
-send_file_count()
-for filename in filenames:
-    send_file(filename)
 
 # close the client socket
-client_socket.close()
 # close the server socket
-s.close()

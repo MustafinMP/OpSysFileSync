@@ -1,16 +1,40 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import socket
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def get_local_ip():
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    return local_ip
 
 
-# Press the green button in the gutter to run the script.
+SERVER_HOST = get_local_ip()
+SERVER_PORT = 5001
+BUFFER_SIZE = 4096
+SEPARATOR = "<SEPARATOR>"
+s = socket.socket()
+
+
+def choice_mode() -> str:
+    print('Запуск программы')
+    print('Выберите режим запуска - Primary или Secondary')
+    mode = input('[p/s]: ')
+    while mode not in ['p', 's']:
+        print('Некорректный ввод, выберите режим снова')
+        mode = input('[p/s]: ')
+    return mode
+
+
+def main() -> None:
+    mode = choice_mode()
+    if mode == 'p':
+        from server import Server
+        server = Server()
+        server.receive_all()
+        server.send_all()
+        server.close()
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    main()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+

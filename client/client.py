@@ -34,8 +34,6 @@ filenames = get_files_for_sending()
 print(filenames)
 
 s = socket.socket()
-
-
 def connect(host: str) -> None:
     global s
     print(f"[+] Connecting to {host}:{SERVER_PORT}")
