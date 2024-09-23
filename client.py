@@ -35,6 +35,13 @@ class Client:
         self.s.connect((host, SERVER_PORT))
         print("[+] Connected.")
 
+    def verify_code(self, code: int) -> bool:
+        self.s.send(str(code).encode())
+        if not self.s.recv(2).decode() == 'Ok':
+            print('Неверный код доступа')
+            return False
+        return True
+
     def send_file_count(self, count: int) -> None:
         self.s.send(str(count).encode())
         self.s.recv(2).decode()

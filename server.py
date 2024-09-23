@@ -35,6 +35,25 @@ class Server:
         self.client_socket, address = self.s.accept()
         print(f"[+] {address} is connected.")
 
+    def verify_code(self, correct_code: int) -> bool:
+        received = self.client_socket.recv(128).decode()
+        if int(received) == correct_code:
+            self.client_socket.send(b'Ok')
+            return True
+        self.client_socket.send(b'No')
+        return
+
+    def receive_file_count(self) -> int:
+        received = self.client_socket.recv(128).decode()
+        count = received
+        self.client_socket.send(b'Ok')
+        print(f'Await {count} files')
+        return int(count)
+
+    def send_file_count(self, count: int) -> None:
+        self.client_socket.send(str(count).encode())
+        self.client_socket.recv(2).decode()
+
     def receive_file(self) -> None:
         received = self.client_socket.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
@@ -82,17 +101,6 @@ class Server:
                     break
                 self.client_socket.sendall(bytes_read)
                 progress.update(len(bytes_read))
-
-    def receive_file_count(self) -> int:
-        received = self.client_socket.recv(128).decode()
-        count = received
-        self.client_socket.send(b'Ok')
-        print(f'Await {count} files')
-        return int(count)
-
-    def send_file_count(self, count: int) -> None:
-        self.client_socket.send(str(count).encode())
-        self.client_socket.recv(2).decode()
 
     def receive_all(self) -> None:
         count_of_files = self.receive_file_count()

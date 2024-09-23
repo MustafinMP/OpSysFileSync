@@ -1,4 +1,7 @@
+import random
 import socket
+
+from verification import Verification
 
 
 def get_local_ip():
@@ -29,16 +32,21 @@ def main() -> None:
     if mode == 'p':
         from server import Server
         server = Server('data_dir')
-        server.receive_all()
-        server.send_all()
+        code = random.randint(100, 999)
+        # print(f'Введите код верификации на другом устройстве: {code}')
+        if True:  # server.verify_code(code):
+            server.receive_all()
+            server.send_all()
         server.close()
     elif mode == 's':
         from client import Client
         client = Client('save_dir')
         host = input('Укажите хост подключения: ')
         client.connect(host)
-        client.send_all()
-        client.receive_all()
+        # code = input('Введите трехзначный код, указанный на экране другого устройства: ')
+        if True:  # client.verify_code(code):
+            client.send_all()
+            client.receive_all()
         client.close()
 
 
