@@ -42,10 +42,6 @@ class Client:
             return False
         return True
 
-    def send_file_count(self, count: int) -> None:
-        self.s.send(str(count).encode())
-        self.s.recv(2).decode()
-
     def receive_file_count(self) -> int:
         received = self.s.recv(128).decode()
         count = received
@@ -53,22 +49,9 @@ class Client:
         print(f'Await {count} files')
         return int(count)
 
-    def send_file(self, filename: str) -> None:
-        filesize = os.path.getsize(filename)
-        filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
-        self.s.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
-        if self.s.recv(2).decode() == 'Ex':
-            return
-
-        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-
-        with open(filename, "rb") as f:
-            while True:
-                bytes_read = f.read(BUFFER_SIZE)
-                if not bytes_read:
-                    break
-                self.s.sendall(bytes_read)
-                progress.update(len(bytes_read))
+    def send_file_count(self, count: int) -> None:
+        self.s.send(str(count).encode())
+        self.s.recv(2).decode()
 
     def receive_file(self) -> None:
         received = self.s.recv(128).decode()
@@ -99,16 +82,33 @@ class Client:
                 f.write(bytes_read)
                 progress.update(len(bytes_read))
 
-    def send_all(self) -> None:
-        filenames = get_files_for_sending(self.abs_dir_path)
-        self.send_file_count(len(filenames))
-        for filename in filenames:
-            self.send_file(filename)
+    def send_file(self, filename: str) -> None:
+        filesize = os.path.getsize(filename)
+        filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
+        self.s.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
+        if self.s.recv(2).decode() == 'Ex':
+            return
+
+        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+
+        with open(filename, "rb") as f:
+            while True:
+                bytes_read = f.read(BUFFER_SIZE)
+                if not bytes_read:
+                    break
+                self.s.sendall(bytes_read)
+                progress.update(len(bytes_read))
 
     def receive_all(self):
         count_of_files = self.receive_file_count()
         for _ in range(count_of_files):
             self.receive_file()
+
+    def send_all(self) -> None:
+        filenames = get_files_for_sending(self.abs_dir_path)
+        self.send_file_count(len(filenames))
+        for filename in filenames:
+            self.send_file(filename)
 
     def close(self):
         self.s.close()
