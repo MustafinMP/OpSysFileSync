@@ -25,11 +25,11 @@ def get_files_for_sending(path_from):
 
 
 class Server:
-    def __init__(self, data_dir='data_dir'):
+    def __init__(self, data_dir):
         self.s = socket.socket()
         self.s.bind((SERVER_HOST, SERVER_PORT))
         self.s.listen(1)
-        self.data_dir = data_dir
+        self.abs_dir_path = data_dir
 
         print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
         self.client_socket, address = self.s.accept()
@@ -57,9 +57,7 @@ class Server:
     def receive_file(self) -> None:
         received = self.client_socket.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
-        filename = filename[filename.index("/") + 1:]
-        if self.data_dir:
-            filename = f'{self.data_dir}/{filename}'
+        filename = f'{self.abs_dir_path}/{filename}'
 
         if os.path.exists(filename):
             self.client_socket.send(b'Ex')
@@ -69,7 +67,6 @@ class Server:
         *path, filename = filename.split('/')
         path = '/'.join(path)
         if not os.path.exists(path):
-            print(path)
             os.mkdir(path)
         filename = f'{path}/{filename}'
         filesize = int(filesize)
@@ -88,7 +85,8 @@ class Server:
 
     def send_file(self, filename: str) -> None:
         filesize = os.path.getsize(filename)
-        self.client_socket.send(f"{filename}{SEPARATOR}{filesize}".encode())
+        filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
+        self.client_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
         if self.client_socket.recv(2).decode() == 'Ex':
             return
 
@@ -108,7 +106,7 @@ class Server:
             self.receive_file()
 
     def send_all(self) -> None:
-        filenames = get_files_for_sending(self.data_dir)
+        filenames = get_files_for_sending(self.abs_dir_path)
         self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
@@ -119,7 +117,7 @@ class Server:
 
 
 if __name__ == '__main__':
-    server = Server()
+    server = Server('C:/Users/musta/PycharmProjects/OpSysFileSync/save_dir')
     server.receive_all()
     server.send_all()
     server.close()

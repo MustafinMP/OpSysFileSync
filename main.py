@@ -1,5 +1,8 @@
 import random
 import socket
+import tkinter
+from tkinter import filedialog
+
 
 from verification import Verification
 
@@ -17,8 +20,15 @@ SEPARATOR = "<SEPARATOR>"
 s = socket.socket()
 
 
+def get_absolute_path() -> str:
+    print('В открывшемся диалоговом окне выберите директорию для синхронизации')
+    root = tkinter.Tk()
+    root.withdraw()
+    dir_ = filedialog.askdirectory()
+    return dir_
+
+
 def choice_mode() -> str:
-    print('Запуск программы')
     print('Выберите режим запуска - Primary или Secondary')
     mode = input('[p/s]: ')
     while mode not in ['p', 's']:
@@ -28,10 +38,13 @@ def choice_mode() -> str:
 
 
 def main() -> None:
+    print('Запуск программы')
+    abs_dir_path = get_absolute_path()
+    print(f'выбрана директория {abs_dir_path}')
     mode = choice_mode()
     if mode == 'p':
         from server import Server
-        server = Server('data_dir')
+        server = Server(abs_dir_path)
         code = random.randint(100, 999)
         # print(f'Введите код верификации на другом устройстве: {code}')
         if True:  # server.verify_code(code):
@@ -40,7 +53,7 @@ def main() -> None:
         server.close()
     elif mode == 's':
         from client import Client
-        client = Client('save_dir')
+        client = Client(abs_dir_path)
         host = input('Укажите хост подключения: ')
         client.connect(host)
         # code = input('Введите трехзначный код, указанный на экране другого устройства: ')

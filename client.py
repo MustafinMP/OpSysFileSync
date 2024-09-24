@@ -26,9 +26,9 @@ def get_files_for_sending(path_from):
 
 
 class Client:
-    def __init__(self, data_dir='save_dir'):
+    def __init__(self, data_dir='C:/Users/musta/PycharmProjects/OpSysFileSync/data_dir'):
         self.s = socket.socket()
-        self.data_dir = data_dir
+        self.abs_dir_path = data_dir
 
     def connect(self, host: str) -> None:
         print(f"[+] Connecting to {host}:{SERVER_PORT}")
@@ -55,7 +55,8 @@ class Client:
 
     def send_file(self, filename: str) -> None:
         filesize = os.path.getsize(filename)
-        self.s.send(f"{filename}{SEPARATOR}{filesize}".encode())
+        filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
+        self.s.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
         if self.s.recv(2).decode() == 'Ex':
             return
 
@@ -72,9 +73,8 @@ class Client:
     def receive_file(self) -> None:
         received = self.s.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
-        filename = filename[filename.index("/") + 1:]
-        if self.data_dir:
-            filename = f'{self.data_dir}/' + filename
+        filename = f'{self.abs_dir_path}/{filename}'
+
         if os.path.exists(filename):
             self.s.send(b'Ex')
             print(f'File {filename} is already exist')
@@ -100,7 +100,7 @@ class Client:
                 progress.update(len(bytes_read))
 
     def send_all(self) -> None:
-        filenames = get_files_for_sending(self.data_dir)
+        filenames = get_files_for_sending(self.abs_dir_path)
         self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
