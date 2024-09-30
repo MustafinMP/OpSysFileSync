@@ -6,7 +6,12 @@ SEPARATOR = "<SEPARATOR>"
 BUFFER_SIZE = 4096
 
 
-def get_local_ip():
+def get_local_ip() -> str:
+    """Определяет локальный хост сервера
+
+    :return: локальный хост сервера
+    """
+
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     return local_ip
@@ -16,26 +21,51 @@ host = get_local_ip()  # input('Введите хост подключения')
 SERVER_PORT = 5001
 
 
-def get_files_for_sending(path_from):
+def get_files_for_sending(path_from: str) -> list[str]:
+    """Подготавливает список абсолютный тупей файлов для синхронизации
+
+    :param path_from: путь к директории для синхронизации
+    :return: список абсолютных путей к файлам
+    """
+
     filenames = []
+    # рекурсивный проход по файлам
     for dir_info in os.walk(path_from):
         for file in dir_info[2]:
+            # замена символов '\' на '/'
             dr = '/'.join(dir_info[0].split('\\'))
             filenames.append(f'{dr}/{file}')
     return filenames
 
 
 class Client:
-    def __init__(self, data_dir='C:/Users/musta/PycharmProjects/OpSysFileSync/data_dir'):
+    def __init__(self, data_dir: str):
+        """
+
+        :param data_dir: абсолютный путь к директории для синхронизации
+        """
+
         self.s = socket.socket()
         self.abs_dir_path = data_dir
 
     def connect(self, host: str) -> None:
-        print(f"[+] Connecting to {host}:{SERVER_PORT}")
+        """Подключается к серверу по указанному хосту
+
+        :param host: хост подключения
+        :return: none
+        """
+
+        print(f"[+] Подключение к {host}:{SERVER_PORT}")
         self.s.connect((host, SERVER_PORT))
-        print("[+] Connected.")
+        print("[+] Подключено.")
 
     def verify_code(self, code: int) -> bool:
+        """
+
+        :param code:
+        :return:
+        """
+
         self.s.send(str(code).encode())
         if not self.s.recv(2).decode() == 'Ok':
             print('Неверный код доступа')
@@ -115,7 +145,7 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client()
+    client = Client('C:/Users/musta/PycharmProjects/OpSysFileSync/data_dir')
     client.connect(host)
     client.send_all()
     client.receive_all()
