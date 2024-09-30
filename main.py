@@ -78,7 +78,7 @@ def main() -> None:
         host = input('[>] Укажите хост подключения: ')
         for i in range(3):
             try:
-                if i is not 0:
+                if i > 0:
                     print('[+] Повторная попытка подключения')
                 client.connect(host)
                 break
