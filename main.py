@@ -63,19 +63,22 @@ def main() -> None:
     abs_dir_path = get_absolute_path()
     print(f'[+] Выбрана директория {abs_dir_path}')
     mode = choice_mode()
+    # работа в режиме Primary
     if mode == 'p':
         from server import Server
         server = Server(abs_dir_path)
-        code = random.randint(100, 999)
+        # code = random.randint(100, 999)
         # print(f'Введите код верификации на другом устройстве: {code}')
-        if True:  # server.verify_code(code):
-            server.receive_all()
-            server.send_all()
+        # if True: server.verify_code(code):
+        server.receive_all()
+        server.send_all()
         server.close()
+    # работа в режиме Secondary
     elif mode == 's':
         from client import Client
         client = Client(abs_dir_path)
         host = input('[>] Укажите хост подключения: ')
+        # Три попытки подключения
         for i in range(3):
             try:
                 if i > 0:
@@ -85,6 +88,7 @@ def main() -> None:
             except ConnectionRefusedError as e:
                 print(e)
                 sleep(1)
+        # Если три попытки подключения не удались, завершаем программу
         else:
             print('[*] Подключение не установлено.')
             print(
@@ -93,9 +97,9 @@ def main() -> None:
             )
             sys.exit(0)
         # code = input('Введите трехзначный код, указанный на экране другого устройства: ')
-        if True:  # client.verify_code(code):
-            client.send_all()
-            client.receive_all()
+        # if client.verify_code(code):
+        client.send_all()
+        client.receive_all()
         client.close()
 
 

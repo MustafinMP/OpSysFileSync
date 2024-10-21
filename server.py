@@ -26,6 +26,11 @@ def get_files_for_sending(path_from):
 
 class Server:
     def __init__(self, data_dir):
+        """Инициализация сокет-соединения в режиме сервера.
+
+        :param data_dir: абсолютный путь директории для синхронизации.
+        """
+
         self.s = socket.socket()
         self.s.bind((SERVER_HOST, SERVER_PORT))
         self.s.listen(1)
@@ -35,15 +40,12 @@ class Server:
         self.client_socket, address = self.s.accept()
         print(f"[+] {address} is connected.")
 
-    def verify_code(self, correct_code: int) -> bool:
-        received = self.client_socket.recv(128).decode()
-        if int(received) == correct_code:
-            self.client_socket.send(b'Ok')
-            return True
-        self.client_socket.send(b'No')
-        return
-
     def receive_file_count(self) -> int:
+        """Получение количества передаваемых файлов.
+
+        :return: количество файлов.
+        """
+
         received = self.client_socket.recv(128).decode()
         count = received
         self.client_socket.send(b'Ok')
@@ -51,10 +53,21 @@ class Server:
         return int(count)
 
     def send_file_count(self, count: int) -> None:
+        """ Отправка количества передаваемых файлов.
+
+        :param count: количество файлов.
+        :return: none.
+        """
+
         self.client_socket.send(str(count).encode())
         self.client_socket.recv(2).decode()
 
     def receive_file(self) -> None:
+        """Получение одного файла по сокет-соединению.
+
+        :return: none.
+        """
+
         received = self.client_socket.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
         filename = f'{self.abs_dir_path}/{filename}'
@@ -84,6 +97,12 @@ class Server:
                 progress.update(len(bytes_read))
 
     def send_file(self, filename: str) -> None:
+        """Отправка одного файла по сокет-соединению.
+
+        :param filename: имя отправляемого файла.
+        :return: none.
+        """
+
         filesize = os.path.getsize(filename)
         filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
         self.client_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
@@ -101,17 +120,32 @@ class Server:
                 progress.update(len(bytes_read))
 
     def receive_all(self) -> None:
+        """Получение всех файлов по сокет-соединению.
+
+        :return: none.
+        """
+
         count_of_files = self.receive_file_count()
         for _ in range(int(count_of_files)):
             self.receive_file()
 
     def send_all(self) -> None:
+        """Отправка всех файлов по сокет-соединению.
+
+        :return: none.
+        """
+
         filenames = get_files_for_sending(self.abs_dir_path)
         self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
 
     def close(self):
+        """Закрытие сокет-соединения.
+
+        :return: none.
+        """
+
         self.client_socket.close()
         self.s.close()
 
