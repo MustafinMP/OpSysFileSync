@@ -70,7 +70,7 @@ class Client(AbstractConnect):
 
 
 if __name__ == '__main__':
-    client = Client('C:/Users/musta/PycharmProjects/OpSysFileSync/data_dir')
+    client = Client('C:/Users/musta/PycharmProjects/OpSysFileSync/save_dir')
     client.connect(host)
     client.send_all()
     client.receive_all()

@@ -72,8 +72,8 @@ def main() -> None:
         server.close()
     # работа в режиме клиента
     elif mode == 's':
-        from client import Client2
-        client = Client2(abs_dir_path)
+        from client import Client
+        client = Client(abs_dir_path)
         host = input('[>] Укажите хост подключения: ')
         # Три попытки подключения
         for i in range(3):
