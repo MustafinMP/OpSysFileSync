@@ -2,43 +2,37 @@ import socket
 import tqdm
 import os
 
-
-def get_local_ip():
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    return local_ip
-
-
-SERVER_HOST = get_local_ip()
-SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
 
 
-def get_files_for_sending(path_from) -> list[str]:
+def get_files_for_sending(path_from: str) -> list[str]:
+    """Подготавливает список абсолютный тупей файлов для синхронизации
+
+    :param path_from: путь к директории для синхронизации
+    :return: список абсолютных путей к файлам
+    """
+
     filenames = []
+    # рекурсивный проход по файлам
     for dir_info in os.walk(path_from):
         for file in dir_info[2]:
+            # замена символов '\' на '/'
             dr = '/'.join(dir_info[0].split('\\'))
             filenames.append(f'{dr}/{file}')
     return filenames
 
 
-class Server:
+class AbstractConnect:
     def __init__(self, data_dir):
         """Инициализация сокет-соединения в режиме сервера.
 
         :param data_dir: абсолютный путь директории для синхронизации.
         """
 
-        self.s = socket.socket()
-        self.s.bind((SERVER_HOST, SERVER_PORT))
-        self.s.listen(1)
+        self.socket = socket.socket()
         self.abs_dir_path = data_dir
-
-        print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
-        self.client_socket, address = self.s.accept()
-        print(f"[+] {address} is connected.")
+        self.connect_socket = self.socket
 
     def receive_file_count(self) -> int:
         """Получение количества передаваемых файлов.
@@ -46,9 +40,9 @@ class Server:
         :return: количество файлов.
         """
 
-        received = self.client_socket.recv(128).decode()
+        received = self.connect_socket.recv(128).decode()
         count = received
-        self.client_socket.send(b'Ok')
+        self.connect_socket.send(b'Ok')
         print(f'Await {count} files')
         return int(count)
 
@@ -59,8 +53,8 @@ class Server:
         :return: none.
         """
 
-        self.client_socket.send(str(count).encode())
-        self.client_socket.recv(2).decode()
+        self.connect_socket.send(str(count).encode())
+        self.connect_socket.recv(2).decode()
 
     def receive_file(self) -> None:
         """Получение одного файла по сокет-соединению.
@@ -68,15 +62,15 @@ class Server:
         :return: none.
         """
 
-        received = self.client_socket.recv(128).decode()
+        received = self.connect_socket.recv(128).decode()
         filename, filesize = received.split(SEPARATOR)
         filename = f'{self.abs_dir_path}/{filename}'
 
         if os.path.exists(filename):
-            self.client_socket.send(b'Ex')
+            self.connect_socket.send(b'Ex')
             print(f'File {filename} is already exist')
             return
-        self.client_socket.send(b'Nw')
+        self.connect_socket.send(b'Nw')
         *path, filename = filename.split('/')
         path = '/'.join(path)
         if not os.path.exists(path):
@@ -90,7 +84,7 @@ class Server:
             while downloaded_bytes < filesize:
                 p = BUFFER_SIZE if filesize - downloaded_bytes >= BUFFER_SIZE else filesize - downloaded_bytes
                 downloaded_bytes += p
-                bytes_read = self.client_socket.recv(p)
+                bytes_read = self.connect_socket.recv(p)
                 if not bytes_read:
                     break
                 f.write(bytes_read)
@@ -105,8 +99,8 @@ class Server:
 
         filesize = os.path.getsize(filename)
         filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
-        self.client_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
-        if self.client_socket.recv(2).decode() == 'Ex':
+        self.connect_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
+        if self.connect_socket.recv(2).decode() == 'Ex':
             return
 
         progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
@@ -116,7 +110,7 @@ class Server:
                 bytes_read = f.read(BUFFER_SIZE)
                 if not bytes_read:
                     break
-                self.client_socket.sendall(bytes_read)
+                self.connect_socket.sendall(bytes_read)
                 progress.update(len(bytes_read))
 
     def receive_all(self) -> None:
@@ -139,19 +133,3 @@ class Server:
         self.send_file_count(len(filenames))
         for filename in filenames:
             self.send_file(filename)
-
-    def close(self):
-        """Закрытие сокет-соединения.
-
-        :return: none.
-        """
-
-        self.client_socket.close()
-        self.s.close()
-
-
-if __name__ == '__main__':
-    server = Server('C:/Users/musta/PycharmProjects/OpSysFileSync/save_dir')
-    server.receive_all()
-    server.send_all()
-    server.close()

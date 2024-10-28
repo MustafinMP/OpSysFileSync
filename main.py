@@ -63,20 +63,17 @@ def main() -> None:
     abs_dir_path = get_absolute_path()
     print(f'[+] Выбрана директория {abs_dir_path}')
     mode = choice_mode()
-    # работа в режиме Primary
+    # работа в режиме сервера
     if mode == 'p':
         from server import Server
         server = Server(abs_dir_path)
-        # code = random.randint(100, 999)
-        # print(f'Введите код верификации на другом устройстве: {code}')
-        # if True: server.verify_code(code):
         server.receive_all()
         server.send_all()
         server.close()
-    # работа в режиме Secondary
+    # работа в режиме клиента
     elif mode == 's':
-        from client import Client
-        client = Client(abs_dir_path)
+        from client import Client2
+        client = Client2(abs_dir_path)
         host = input('[>] Укажите хост подключения: ')
         # Три попытки подключения
         for i in range(3):
@@ -96,8 +93,6 @@ def main() -> None:
                 ' и перезапустите программу.'
             )
             sys.exit(0)
-        # code = input('Введите трехзначный код, указанный на экране другого устройства: ')
-        # if client.verify_code(code):
         client.send_all()
         client.receive_all()
         client.close()
