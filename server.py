@@ -1,6 +1,4 @@
 import socket
-import tqdm
-import os
 
 from abstract_connect import AbstractConnect
 
@@ -15,15 +13,6 @@ SERVER_HOST = get_local_ip()
 SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
-
-
-def get_files_for_sending(path_from) -> list[str]:
-    filenames = []
-    for dir_info in os.walk(path_from):
-        for file in dir_info[2]:
-            dr = '/'.join(dir_info[0].split('\\'))
-            filenames.append(f'{dr}/{file}')
-    return filenames
 
 
 class Server(AbstractConnect):

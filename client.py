@@ -1,6 +1,4 @@
 import socket
-import tqdm
-import os
 
 from abstract_connect import AbstractConnect
 
@@ -21,23 +19,6 @@ def get_local_ip() -> str:
 
 host = get_local_ip()  # input('Введите хост подключения')
 SERVER_PORT = 5001
-
-
-def get_files_for_sending(path_from: str) -> list[str]:
-    """Подготавливает список абсолютный тупей файлов для синхронизации
-
-    :param path_from: путь к директории для синхронизации
-    :return: список абсолютных путей к файлам
-    """
-
-    filenames = []
-    # рекурсивный проход по файлам
-    for dir_info in os.walk(path_from):
-        for file in dir_info[2]:
-            # замена символов '\' на '/'
-            dr = '/'.join(dir_info[0].split('\\'))
-            filenames.append(f'{dr}/{file}')
-    return filenames
 
 
 class Client(AbstractConnect):
