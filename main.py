@@ -1,29 +1,7 @@
-import random
-import socket
 import sys
-import tkinter
 from time import sleep
-from tkinter import filedialog
-
-from verification import Verification
-
-
-def get_local_ip() -> str:
-    """Определяет локальный хост сервера
-
-    :return: локальный хост сервера
-    """
-
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    return local_ip
-
-
-SERVER_HOST = get_local_ip()
-SERVER_PORT = 5001
-BUFFER_SIZE = 4096
-SEPARATOR = "<SEPARATOR>"
-s = socket.socket()
+from tkinter import Tk
+from tkinter.filedialog import askdirectory
 
 
 def get_absolute_path() -> str:
@@ -33,9 +11,9 @@ def get_absolute_path() -> str:
     """
 
     print('[>] В открывшемся диалоговом окне выберите директорию для синхронизации')
-    root = tkinter.Tk()
+    root = Tk()
     root.withdraw()
-    path_to_dir = filedialog.askdirectory()
+    path_to_dir = askdirectory()
     return path_to_dir
 
 

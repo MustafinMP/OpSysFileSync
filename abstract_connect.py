@@ -23,7 +23,7 @@ def get_files_for_sending(path_from: str) -> list[str]:
     return filenames
 
 
-class AbstractConnect:
+class BaseSocket:
     def __init__(self, data_dir):
         """Инициализация сокет-соединения в режиме сервера.
 

@@ -1,6 +1,6 @@
 import socket
 
-from abstract_connect import AbstractConnect
+from abstract_connect import BaseSocket
 
 
 def get_local_ip():
@@ -15,7 +15,7 @@ BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
 
 
-class Server(AbstractConnect):
+class Server(BaseSocket):
     def __init__(self, data_dir):
         """Инициализация сокет-соединения в режиме сервера.
 
