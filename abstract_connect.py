@@ -40,7 +40,7 @@ class BaseSocket:
         :return: количество файлов.
         """
 
-        received = self.connect_socket.recv(128).decode()
+        received = self.connect_socket.recv(1024).decode()
         count = received
         self.connect_socket.send(b'Ok')
         print(f'Await {count} files')
@@ -62,7 +62,7 @@ class BaseSocket:
         :return: none.
         """
 
-        received = self.connect_socket.recv(128).decode()
+        received = self.connect_socket.recv(1024).decode()
         filename, filesize = received.split(SEPARATOR)
         filename = f'{self.abs_dir_path}/{filename}'
 
@@ -71,12 +71,14 @@ class BaseSocket:
             print(f'File {filename} is already exist')
             return
         self.connect_socket.send(b'Nw')
+
         *path, filename = filename.split('/')
         path = '/'.join(path)
         if not os.path.exists(path):
             os.mkdir(path)
         filename = f'{path}/{filename}'
         filesize = int(filesize)
+        print(filesize)
 
         progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
         downloaded_bytes = 0
@@ -89,6 +91,7 @@ class BaseSocket:
                     break
                 f.write(bytes_read)
                 progress.update(len(bytes_read))
+        self.connect_socket.send(b'Ok')
 
     def send_file(self, filename: str) -> None:
         """Отправка одного файла по сокет-соединению.
@@ -98,13 +101,13 @@ class BaseSocket:
         """
 
         filesize = os.path.getsize(filename)
+        print(filesize)
         filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
         self.connect_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
         if self.connect_socket.recv(2).decode() == 'Ex':
             return
 
         progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
-
         with open(filename, "rb") as f:
             while True:
                 bytes_read = f.read(BUFFER_SIZE)
@@ -112,6 +115,7 @@ class BaseSocket:
                     break
                 self.connect_socket.sendall(bytes_read)
                 progress.update(len(bytes_read))
+        self.connect_socket.recv(2)
 
     def receive_all(self) -> None:
         """Получение всех файлов по сокет-соединению.
