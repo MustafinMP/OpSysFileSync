@@ -48,7 +48,7 @@ def get_local_ip() -> str:
 
 
 if __name__ == '__main__':
-    client = Client('C:/Users/musta/PycharmProjects/OpSysFileSync/save_dir')
+    client = Client('/save_dir')
     host = get_local_ip()
     client.connect(host)
     client.send_all()

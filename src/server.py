@@ -41,7 +41,7 @@ class Server(BaseSocket):
 
 
 if __name__ == '__main__':
-    server = Server('C:/Users/musta/PycharmProjects/OpSysFileSync/save_dir')
+    server = Server('/save_dir')
     server.receive_all()
     server.send_all()
     server.close()

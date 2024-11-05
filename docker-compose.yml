@@ -1,0 +1,10 @@
+version: '3'
+services:
+  python3:
+    build: .
+    container_name: 'python3'
+    stdin_open: true
+    working_dir: '/src/main'
+    tty: true
+    environment:
+      - DISPLAY=YOUR_IP_ADDRESS:0.0
