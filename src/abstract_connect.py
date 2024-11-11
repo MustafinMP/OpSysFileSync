@@ -69,7 +69,6 @@ class BaseSocket:
 
         if os.path.exists(filename):
             self.connect_socket.send(b'Ex')
-            print(f'File {filename} is already exist')
             return
         self.connect_socket.send(b'Nw')
 
@@ -80,16 +79,14 @@ class BaseSocket:
         filename = f'{path}/{filename}'
         filesize = int(filesize)
 
-        progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
         downloaded_bytes = 0
         with open(filename, "wb") as f:
             while downloaded_bytes < filesize:
-                downloaded_bytes += 1024
-                bytes_read = self.connect_socket.recv(1024)
+                downloaded_bytes += BUFFER_SIZE
+                bytes_read = self.connect_socket.recv(BUFFER_SIZE)
                 if not bytes_read:
                     break
                 f.write(bytes_read)
-                progress.update(len(bytes_read))
         self.connect_socket.send(b'Ok')
 
     def send_file(self, filename: str) -> None:
@@ -105,14 +102,12 @@ class BaseSocket:
         if self.connect_socket.recv(2).decode() == 'Ex':
             return
 
-        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "rb") as f:
             while True:
                 bytes_read = f.read(BUFFER_SIZE)
                 if not bytes_read:
                     break
                 self.connect_socket.sendall(bytes_read)
-                progress.update(len(bytes_read))
         self.connect_socket.recv(2)
 
     def receive_all(self) -> None:
@@ -122,8 +117,10 @@ class BaseSocket:
         """
 
         count_of_files = self.receive_file_count()
+        progress = tqdm.tqdm(range(count_of_files), f"Receiving files", unit="B", unit_scale=True, unit_divisor=1)
         for _ in range(int(count_of_files)):
             self.receive_file()
+            progress.update()
 
     def send_all(self) -> None:
         """Отправка всех файлов по сокет-соединению.
@@ -133,5 +130,7 @@ class BaseSocket:
 
         filenames = get_files_for_sending(self.abs_dir_path)
         self.send_file_count(len(filenames))
+        progress = tqdm.tqdm(range(len(filenames)), f"Sending files", unit="B", unit_scale=True, unit_divisor=1)
         for filename in filenames:
             self.send_file(filename)
+            progress.update()
