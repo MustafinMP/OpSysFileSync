@@ -1,4 +1,5 @@
 import socket
+
 import tqdm
 import os
 
@@ -62,7 +63,7 @@ class BaseSocket:
         :return: none.
         """
 
-        received = self.connect_socket.recv(1024).decode()
+        received = self.connect_socket.recv(1024).decode('utf-8')
         filename, filesize = received.split(SEPARATOR)
         filename = f'{self.abs_dir_path}/{filename}'
 
@@ -78,15 +79,13 @@ class BaseSocket:
             os.mkdir(path)
         filename = f'{path}/{filename}'
         filesize = int(filesize)
-        print(filesize)
 
         progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
         downloaded_bytes = 0
         with open(filename, "wb") as f:
             while downloaded_bytes < filesize:
-                p = BUFFER_SIZE if filesize - downloaded_bytes >= BUFFER_SIZE else filesize - downloaded_bytes
-                downloaded_bytes += p
-                bytes_read = self.connect_socket.recv(p)
+                downloaded_bytes += 1024
+                bytes_read = self.connect_socket.recv(1024)
                 if not bytes_read:
                     break
                 f.write(bytes_read)
@@ -101,9 +100,8 @@ class BaseSocket:
         """
 
         filesize = os.path.getsize(filename)
-        print(filesize)
         filename_for_message = filename.replace(self.abs_dir_path, '')[1:]
-        self.connect_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode())
+        self.connect_socket.send(f"{filename_for_message}{SEPARATOR}{filesize}".encode('utf-8'))
         if self.connect_socket.recv(2).decode() == 'Ex':
             return
 
